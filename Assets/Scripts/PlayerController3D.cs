@@ -94,9 +94,10 @@ public class PlayerController3D : MonoBehaviour
     void ChangeAnimation(string newAnim)
     {
         if (currentAnimation == newAnim) return;
-        animator.Play(newAnim);
+        animator.CrossFade(newAnim, 0.1f); // Smooth transition over 0.1s
         currentAnimation = newAnim;
     }
+
 
     void CheckGround()
     {
