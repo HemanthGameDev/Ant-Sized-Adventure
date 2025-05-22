@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c63d077fe7eeec14f94a69c9662e1454, type: 3}
+  m_Name: StickWeapon
+  m_EditorClassIdentifier: 
+  weaponName: Stick
+  icon: {fileID: 21300000, guid: 31408586085d51b49ac3a6f291b4b095, type: 3}
+  weaponPrefab: {fileID: 5584348786993599270, guid: 3993385d4e8ced84994797508e9b6a35, type: 3}
+  weaponType: 0
+  handLocalPosition: {x: 0, y: 0, z: 0}
+  handLocalEulerRotation: {x: 0, y: 0, z: 0}
