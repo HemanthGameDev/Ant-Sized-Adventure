@@ -9,6 +9,7 @@ TagManager:
   - Weapon
   - PlayerHand
   - InventorySystem
+  - Enemy
   layers:
   - Default
   - TransparentFX

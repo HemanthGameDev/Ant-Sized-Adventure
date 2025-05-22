@@ -36,6 +36,8 @@ public class PlayerController3D : MonoBehaviour
     private const string ANIM_UP_JUMP = "Up_Jump";
     private const string ANIM_DOWN_JUMP = "Down_Jump";
     private const string ANIM_PICKING = "Picking";
+    private const string ANIM_ATTACK = "Attack";
+
 
     private void Start()
     {
@@ -69,10 +71,11 @@ public class PlayerController3D : MonoBehaviour
         }
 
         // 🔴 Weapon Drop (ALWAYS CALLABLE)
-        if (Input.GetKeyDown(KeyCode.Q))
+        if (Input.GetKeyDown(KeyCode.Q) && !jumpLocked)
         {
-            inventorySystem?.DropWeapon();
+            StartCoroutine(PlayAttackThenDropWeapon());
         }
+
     }
 
     private void FixedUpdate()
@@ -245,4 +248,78 @@ public class PlayerController3D : MonoBehaviour
             Debug.LogError($"[PlayerController3D] Animator state '{newAnim}' not found in layer {layer}.");
         }
     }
+    private IEnumerator PlayAttackThenDropWeapon()
+    {
+        GameObject weapon = inventorySystem.GetEquippedWeaponObject();
+
+        // No weapon? Cancel
+        if (weapon == null) yield break;
+
+        // Lock controls
+        jumpLocked = true;
+
+        // Play attack animation
+        ChangeAnimation(ANIM_ATTACK);
+
+        // Wait until attack animation has started
+        yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).IsName(ANIM_ATTACK));
+
+        // Wait for animation to fully finish
+        yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);
+
+        // Drop and throw
+        inventorySystem.ClearEquippedSlot(); // clear UI slot
+        ThrowWeaponTowardTarget(weapon);
+
+        // Unlock controls
+        jumpLocked = false;
+        HandleAnimation();
+    }
+
+
+
+    private void ThrowWeaponTowardTarget(GameObject weapon)
+    {
+        weapon.transform.SetParent(null);
+        weapon.transform.position = weaponSpawnPoint.position;
+
+        weapon.SetActive(true);
+
+        Rigidbody weaponRb = weapon.GetComponent<Rigidbody>();
+        Collider weaponCol = weapon.GetComponent<Collider>();
+
+        if (weaponRb != null)
+        {
+            weaponRb.isKinematic = false;
+
+            // 🔍 Search for target in front of player
+            Vector3 throwDirection = transform.forward;
+            float maxTargetDistance = 10f;
+
+            RaycastHit hit;
+            if (Physics.Raycast(transform.position + Vector3.up, transform.forward, out hit, maxTargetDistance))
+            {
+                if (hit.collider.CompareTag("Enemy")) // ✅ Only aim if enemy is in front
+                {
+                    throwDirection = (hit.point - weaponSpawnPoint.position).normalized;
+                }
+            }
+
+            weaponRb.linearVelocity = throwDirection * 15f;
+        }
+
+        if (weaponCol != null)
+        {
+            weaponCol.enabled = true;
+        }
+
+        if (weapon.GetComponent<ThrownWeapon>() == null)
+        {
+            weapon.AddComponent<ThrownWeapon>();
+        }
+    }
+
+
+
+
 }

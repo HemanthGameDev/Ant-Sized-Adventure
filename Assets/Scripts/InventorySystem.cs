@@ -1,11 +1,12 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 using System.Collections.Generic;
 
 public class InventorySystem : MonoBehaviour
 {
     [Header("Weapon References")]
-    public Transform weaponAttachPoint;   // Assign PlayerHand
+    public Transform weaponAttachPoint;
     public GameObject stickPrefab;
     public GameObject rockPrefab;
 
@@ -13,9 +14,20 @@ public class InventorySystem : MonoBehaviour
     public InventorySlot stickSlot;
     public InventorySlot rockSlot;
 
+    [Header("Throw Settings")]
+    public float throwForce = 5f;
+    public float throwUpwardForce = 2f;
+    public float weaponDespawnTime = 10f;
+    public float throwAnimationDuration = 0.35f; // should match actual animation
+
+    [Header("Animation")]
+    public Animator playerAnimator; // assign Player Animator in Inspector
+
     private GameObject equippedWeapon;
     private string equippedWeaponName;
+
     private Dictionary<string, GameObject> weaponPrefabs;
+    private Dictionary<string, InventorySlot> weaponSlots;
 
     private void Start()
     {
@@ -25,36 +37,41 @@ public class InventorySystem : MonoBehaviour
             { "Rock", rockPrefab }
         };
 
-        stickSlot.HideIcon();
-        rockSlot.HideIcon();
+        weaponSlots = new Dictionary<string, InventorySlot>
+        {
+            { "Stick", stickSlot },
+            { "Rock", rockSlot }
+        };
+
+        foreach (var slot in weaponSlots.Values)
+            slot.HideIcon();
     }
 
     public void PickupWeapon(GameObject weaponPrefab, string weaponName, Sprite icon)
     {
-        if (!weaponPrefabs.ContainsKey(weaponName)) return;
+        if (!weaponPrefabs.ContainsKey(weaponName) || !weaponSlots.ContainsKey(weaponName)) return;
 
-        // Prevent duplicate pickup of same weapon
-        if (weaponName == "Stick" && stickSlot.hasWeapon) return;
-        if (weaponName == "Rock" && rockSlot.hasWeapon) return;
+        InventorySlot slot = weaponSlots[weaponName];
+        if (slot.hasWeapon) return;
 
-        if (weaponName == "Stick")
-        {
-            stickSlot.AssignWeapon(weaponPrefab, weaponName, icon);
-        }
-        else if (weaponName == "Rock")
-        {
-            rockSlot.AssignWeapon(weaponPrefab, weaponName, icon);
-        }
+        slot.AssignWeapon(weaponPrefab, weaponName, icon);
     }
 
     public void EquipWeapon(string weaponName)
     {
-        if (!weaponPrefabs.ContainsKey(weaponName)) return;
+        if (!weaponPrefabs.ContainsKey(weaponName) || !weaponSlots.ContainsKey(weaponName)) return;
 
         if (equippedWeapon != null)
         {
-            DropWeapon(); // Drop current before equipping new one
+            DropWeaponImmediate(); // quick swap (no throw)
         }
+
+        StartCoroutine(EquipWeaponCoroutine(weaponName));
+    }
+
+    private IEnumerator EquipWeaponCoroutine(string weaponName)
+    {
+        yield return new WaitForSeconds(0.35f); // wait for equip animation if any
 
         GameObject prefab = weaponPrefabs[weaponName];
         GameObject newWeapon = Instantiate(prefab, weaponAttachPoint);
@@ -70,27 +87,53 @@ public class InventorySystem : MonoBehaviour
         equippedWeapon = newWeapon;
         equippedWeaponName = weaponName;
 
-        // Hide the corresponding icon
-        if (weaponName == "Stick") stickSlot.HideIcon();
-        else if (weaponName == "Rock") rockSlot.HideIcon();
+        weaponSlots[weaponName].HideIcon();
     }
 
-    public void DropWeapon()
+    private void Update()
     {
-        if (equippedWeapon == null) return;
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            if (equippedWeapon != null)
+                StartCoroutine(ThrowWeaponAfterAnimation());
+        }
+    }
 
+    /// <summary>
+    /// Plays animation, waits, then throws the weapon.
+    /// </summary>
+    private IEnumerator ThrowWeaponAfterAnimation()
+    {
+        if (playerAnimator != null)
+        {
+            playerAnimator.SetTrigger("Attack");
+        }
+
+        // Temporarily disable rendering until throw
+        Renderer[] renderers = equippedWeapon.GetComponentsInChildren<Renderer>();
+        foreach (var r in renderers)
+            r.enabled = false;
+
+        yield return new WaitForSeconds(throwAnimationDuration); // wait for animation
+
+        // Detach and throw weapon
         equippedWeapon.transform.SetParent(null);
+
         Rigidbody rb = equippedWeapon.GetComponent<Rigidbody>();
         if (rb != null)
         {
             rb.isKinematic = false;
-            rb.AddForce(weaponAttachPoint.forward * 5f + Vector3.up * 2f, ForceMode.Impulse);
+            rb.AddForce(weaponAttachPoint.forward * throwForce + Vector3.up * throwUpwardForce, ForceMode.Impulse);
         }
 
         foreach (Collider col in equippedWeapon.GetComponentsInChildren<Collider>())
             col.enabled = true;
 
-        // Re-enable pickup on the dropped object
+        // Reactivate rendering
+        foreach (var r in renderers)
+            r.enabled = true;
+
+        // Reactivate pickup logic
         WeaponPickupInteract interact = equippedWeapon.GetComponent<WeaponPickupInteract>();
         if (interact != null)
         {
@@ -98,21 +141,60 @@ public class InventorySystem : MonoBehaviour
             equippedWeapon.SetActive(true);
         }
 
-        string droppedWeaponName = equippedWeaponName;
+        // Schedule destruction
+        Destroy(equippedWeapon, weaponDespawnTime);
+
+        // Show correct icon again
+        if (!string.IsNullOrEmpty(equippedWeaponName) && weaponSlots.ContainsKey(equippedWeaponName))
+            weaponSlots[equippedWeaponName].ShowIcon();
 
         equippedWeapon = null;
         equippedWeaponName = null;
-
-        // Reactivate the correct UI icon
-        if (droppedWeaponName == "Stick") stickSlot.ShowIcon();
-        else if (droppedWeaponName == "Rock") rockSlot.ShowIcon();
     }
 
-    private void Update()
+    /// <summary>
+    /// Immediate drop without animation.
+    /// </summary>
+    public void DropWeaponImmediate()
     {
-        if (Input.GetKeyDown(KeyCode.Q))
+        if (equippedWeapon == null) return;
+
+        equippedWeapon.transform.SetParent(null);
+
+        Rigidbody rb = equippedWeapon.GetComponent<Rigidbody>();
+        if (rb != null)
         {
-            DropWeapon();
+            rb.isKinematic = false;
+            rb.AddForce(weaponAttachPoint.forward * throwForce + Vector3.up * throwUpwardForce, ForceMode.Impulse);
         }
+
+        foreach (Collider col in equippedWeapon.GetComponentsInChildren<Collider>())
+            col.enabled = true;
+
+        WeaponPickupInteract interact = equippedWeapon.GetComponent<WeaponPickupInteract>();
+        if (interact != null)
+        {
+            interact.SetPickedUp(false);
+            equippedWeapon.SetActive(true);
+        }
+
+        Destroy(equippedWeapon, weaponDespawnTime);
+
+        if (!string.IsNullOrEmpty(equippedWeaponName) && weaponSlots.ContainsKey(equippedWeaponName))
+            weaponSlots[equippedWeaponName].ShowIcon();
+
+        equippedWeapon = null;
+        equippedWeaponName = null;
+    }
+
+    public GameObject GetEquippedWeaponObject() => equippedWeapon;
+
+    public void ClearEquippedSlot()
+    {
+        if (!string.IsNullOrEmpty(equippedWeaponName) && weaponSlots.ContainsKey(equippedWeaponName))
+            weaponSlots[equippedWeaponName].ShowIcon();
+
+        equippedWeapon = null;
+        equippedWeaponName = null;
     }
 }
