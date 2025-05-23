@@ -23,6 +23,8 @@ public class PlayerController3D : MonoBehaviour
     private bool isPickPressed;
     private bool wasGroundedLastFrame;
     private float lastYVelocity;
+    private bool isDead = false;
+
 
     private string currentAnimation;
     private bool jumpLocked;
@@ -37,6 +39,8 @@ public class PlayerController3D : MonoBehaviour
     private const string ANIM_DOWN_JUMP = "Down_Jump";
     private const string ANIM_PICKING = "Picking";
     private const string ANIM_ATTACK = "Attack";
+    private const string ANIM_DEAD = "Dead";
+
 
 
     private void Start()
@@ -344,8 +348,24 @@ public class PlayerController3D : MonoBehaviour
             weapon.AddComponent<ThrownWeapon>();
         }
     }
+    public void TriggerDeath()
+    {
+        if (isDead) return;
 
+        isDead = true;
+        jumpLocked = true;
+        rb.linearVelocity = Vector3.zero;
 
+        ChangeAnimation(ANIM_DEAD);
+        StartCoroutine(WaitForDeathAnimation());
+    }
+    private IEnumerator WaitForDeathAnimation()
+    {
+        yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).IsName(ANIM_DEAD));
+        yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);
+
+        gameObject.SetActive(false); // fully disable player after death
+    }
 
 
 }

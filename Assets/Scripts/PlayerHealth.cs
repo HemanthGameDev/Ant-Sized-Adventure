@@ -5,9 +5,12 @@ public class PlayerHealth : MonoBehaviour
     public int MaxHealth = 100;
     public int CurrentHealth { get; private set; }
 
+    private PlayerController3D playerController;
+
     void Start()
     {
         CurrentHealth = MaxHealth;
+        playerController = GetComponent<PlayerController3D>();
     }
 
     public void TakeDamage(int damage)
@@ -25,6 +28,9 @@ public class PlayerHealth : MonoBehaviour
     void Die()
     {
         Debug.Log("Player died!");
-        // Add death logic here
+        if (playerController != null)
+        {
+            playerController.TriggerDeath();
+        }
     }
 }
