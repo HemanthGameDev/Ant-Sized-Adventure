@@ -50,10 +50,27 @@ public class PlayerController3D : MonoBehaviour
             inventorySystem = GetComponent<InventorySystem>();
     }
 
+    private bool shouldJump = false;
+    private string pendingJumpAnim = "";
+
     private void Update()
     {
         HandleInput();
         HandleAnimation();
+
+        // Jump trigger moved to here for instant animation
+        if (isJumpPressed && groundTrigger.isGrounded && !jumpLocked)
+        {
+            if (frontTrigger.hasObstacle)
+            {
+                StartCoroutine(PerformJumpAfterAnimationDelay(ANIM_UP_JUMP));
+            }
+            else
+            {
+                StartCoroutine(PerformJumpAfterAnimationDelay(ANIM_JUMP));
+            }
+        }
+
 
         if ((currentAnimation == ANIM_UP_JUMP || currentAnimation == ANIM_DOWN_JUMP) && jumpLocked)
         {
@@ -70,35 +87,29 @@ public class PlayerController3D : MonoBehaviour
             PlayPickingAnimation();
         }
 
-        // 🔴 Weapon Drop (ALWAYS CALLABLE)
         if (Input.GetKeyDown(KeyCode.Q) && !jumpLocked)
         {
             StartCoroutine(PlayAttackThenDropWeapon());
         }
-
     }
+
 
     private void FixedUpdate()
     {
         if (!jumpLocked)
             Move();
 
-        if (isJumpPressed && groundTrigger.isGrounded && !jumpLocked)
+        if (shouldJump)
         {
-            if (frontTrigger.hasObstacle)
-            {
-                Jump(ANIM_UP_JUMP);
-                jumpLocked = true;
-            }
-            else
-            {
-                Jump(ANIM_JUMP);
-            }
+            Jump(pendingJumpAnim); // animation + force
+            shouldJump = false;
+            pendingJumpAnim = "";
         }
 
         lastYVelocity = rb.linearVelocity.y;
         wasGroundedLastFrame = groundTrigger.isGrounded;
     }
+
 
     private void HandleInput()
     {
@@ -166,7 +177,22 @@ public class PlayerController3D : MonoBehaviour
             }
         }
     }
+    private IEnumerator PerformJumpAfterAnimationDelay(string animName)
+    {
+        jumpLocked = true;
+        ChangeAnimation(animName);
 
+        // Wait a short time so the animation visibly starts
+        yield return new WaitForSeconds(0.15f);
+
+        // Apply the jump force
+        rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpForce, rb.linearVelocity.z);
+
+        // Optional: wait for animation end OR short delay
+        yield return new WaitForSeconds(0.3f);
+
+        jumpLocked = false;
+    }
 
     private void PlaceWeaponInFront(GameObject weapon)
     {

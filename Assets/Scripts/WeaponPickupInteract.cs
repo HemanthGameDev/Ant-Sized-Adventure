@@ -8,7 +8,7 @@ public class WeaponPickupInteract : MonoBehaviour
 
     private bool isPlayerNearby = false;
     private GameObject player;
-   
+
     public bool IsPickedUp { get; private set; }
 
     public void SetPickedUp(bool pickedUp)
