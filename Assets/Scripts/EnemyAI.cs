@@ -96,53 +96,34 @@ public class EnemyAI : MonoBehaviour
     {
         if (isDead) return;
 
-        // If hit by player weapon
+        // Instantly destroy on contact with weapon
         if (collision.collider.CompareTag("Weapon"))
         {
-            DieFromWeaponHit(collision.GetContact(0).normal);
+            Destroy(gameObject);
+            return;
         }
+
         // If hits non-player, non-ground object — change direction and back off slightly
         else if (!collision.collider.isTrigger && !collision.collider.CompareTag("Ground") && !collision.collider.CompareTag("Player"))
         {
-            // Rotate to a new random direction
             float randomAngle = Random.Range(120f, 240f);
             patrolDirection = Quaternion.Euler(0, randomAngle, 0) * transform.forward;
 
-            // Optional: slight bounce back
             if (rb != null)
             {
                 Vector3 bounceBack = -collision.GetContact(0).normal * 0.5f;
                 rb.AddForce(bounceBack, ForceMode.Impulse);
             }
 
-            // Pause movement briefly (optional)
             StartCoroutine(PauseMovement(0.2f));
         }
     }
+
     private System.Collections.IEnumerator PauseMovement(float duration)
     {
         float originalSpeed = patrolSpeed;
         patrolSpeed = 0f;
         yield return new WaitForSeconds(duration);
         patrolSpeed = originalSpeed;
-    }
-
-
-    private void DieFromWeaponHit(Vector3 hitNormal)
-    {
-        isDead = true;
-        StopChase();
-
-        if (rb != null)
-        {
-            rb.linearVelocity = Vector3.zero;
-            rb.AddForce(hitNormal * bounceForce, ForceMode.Impulse);
-        }
-
-        // Optional: Disable AI movement or collider if needed
-        Collider col = GetComponent<Collider>();
-        if (col != null) col.enabled = false;
-
-        Destroy(gameObject, destroyDelay);
     }
 }
