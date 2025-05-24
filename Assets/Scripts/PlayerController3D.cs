@@ -25,65 +25,36 @@ public class PlayerController3D : MonoBehaviour
     private float lastYVelocity;
     private bool isDead = false;
 
-
     private string currentAnimation;
     private bool jumpLocked;
 
     private GroundCheckTrigger groundTrigger;
-    private FrontCheckTrigger frontTrigger;
 
     private const string ANIM_IDLE = "Idle";
     private const string ANIM_RUN = "Run";
     private const string ANIM_JUMP = "Jumping";
-    private const string ANIM_UP_JUMP = "Up_Jump";
-    private const string ANIM_DOWN_JUMP = "Down_Jump";
     private const string ANIM_PICKING = "Picking";
     private const string ANIM_ATTACK = "Attack";
     private const string ANIM_DEAD = "Dead";
-
-
 
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
         animator = GetComponent<Animator>();
         groundTrigger = GetComponentInChildren<GroundCheckTrigger>();
-        frontTrigger = GetComponentInChildren<FrontCheckTrigger>();
 
         if (inventorySystem == null)
             inventorySystem = GetComponent<InventorySystem>();
     }
-
-    private bool shouldJump = false;
-    private string pendingJumpAnim = "";
 
     private void Update()
     {
         HandleInput();
         HandleAnimation();
 
-        // Jump trigger moved to here for instant animation
         if (isJumpPressed && groundTrigger.isGrounded && !jumpLocked)
         {
-            if (frontTrigger.hasObstacle)
-            {
-                StartCoroutine(PerformJumpAfterAnimationDelay(ANIM_UP_JUMP));
-            }
-            else
-            {
-                StartCoroutine(PerformJumpAfterAnimationDelay(ANIM_JUMP));
-            }
-        }
-
-
-        if ((currentAnimation == ANIM_UP_JUMP || currentAnimation == ANIM_DOWN_JUMP) && jumpLocked)
-        {
-            AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
-            if (state.IsName(currentAnimation) && state.normalizedTime >= 1f)
-            {
-                jumpLocked = false;
-                HandleAnimation();
-            }
+            StartCoroutine(PerformJumpAfterAnimationDelay());
         }
 
         if (isPickPressed && groundTrigger.isGrounded && !jumpLocked)
@@ -97,23 +68,14 @@ public class PlayerController3D : MonoBehaviour
         }
     }
 
-
     private void FixedUpdate()
     {
         if (!jumpLocked)
             Move();
 
-        if (shouldJump)
-        {
-            Jump(pendingJumpAnim); // animation + force
-            shouldJump = false;
-            pendingJumpAnim = "";
-        }
-
         lastYVelocity = rb.linearVelocity.y;
         wasGroundedLastFrame = groundTrigger.isGrounded;
     }
-
 
     private void HandleInput()
     {
@@ -137,10 +99,18 @@ public class PlayerController3D : MonoBehaviour
         }
     }
 
-    private void Jump(string animName)
+    private IEnumerator PerformJumpAfterAnimationDelay()
     {
-        ChangeAnimation(animName);
+        jumpLocked = true;
+        ChangeAnimation(ANIM_JUMP);
+
+        yield return new WaitForSeconds(0.15f);
+
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpForce, rb.linearVelocity.z);
+
+        yield return new WaitForSeconds(0.3f);
+
+        jumpLocked = false;
     }
 
     private void PlayPickingAnimation()
@@ -171,78 +141,22 @@ public class PlayerController3D : MonoBehaviour
                 WeaponPickupInteract pickup = hit.GetComponent<WeaponPickupInteract>();
                 if (pickup != null && !pickup.IsPickedUp)
                 {
-                    // Assuming the method to mark the weapon as picked up is 'SetPickedUp'
                     pickup.SetPickedUp(true);
                     pickup.gameObject.SetActive(false);
                     inventorySystem.PickupWeapon(pickup.gameObject, pickup.weaponName, pickup.weaponIcon);
-                    
                     break;
                 }
             }
         }
     }
-    private IEnumerator PerformJumpAfterAnimationDelay(string animName)
-    {
-        jumpLocked = true;
-        ChangeAnimation(animName);
-
-        // Wait a short time so the animation visibly starts
-        yield return new WaitForSeconds(0.15f);
-
-        // Apply the jump force
-        rb.linearVelocity = new Vector3(rb.linearVelocity.x, jumpForce, rb.linearVelocity.z);
-
-        // Optional: wait for animation end OR short delay
-        yield return new WaitForSeconds(0.3f);
-
-        jumpLocked = false;
-    }
-
-    private void PlaceWeaponInFront(GameObject weapon)
-    {
-        if (weaponSpawnPoint == null)
-        {
-            Debug.LogWarning("[PlayerController3D] weaponSpawnPoint is not assigned!");
-            return;
-        }
-
-        weapon.transform.position = weaponSpawnPoint.position;
-        weapon.transform.rotation = weaponSpawnPoint.rotation;
-        weapon.transform.SetParent(null);
-        weapon.SetActive(true);
-
-        Rigidbody weaponRb = weapon.GetComponent<Rigidbody>();
-        if (weaponRb != null)
-        {
-            weaponRb.linearVelocity = Vector3.zero;
-            weaponRb.angularVelocity = Vector3.zero;
-            weaponRb.isKinematic = true;
-        }
-
-        WeaponPickupInteract weaponPickup = weapon.GetComponent<WeaponPickupInteract>();
-        if (weaponPickup != null)
-        {
-            weaponPickup.SetPickedUp(true);
-        }
-    }
-
 
     private void HandleAnimation()
     {
         if (jumpLocked) return;
 
-        if (!groundTrigger.isGrounded && lastYVelocity < -0.5f && wasGroundedLastFrame)
-        {
-            ChangeAnimation(ANIM_DOWN_JUMP);
-            jumpLocked = true;
-            return;
-        }
-
         if (!groundTrigger.isGrounded)
         {
-            if (currentAnimation != ANIM_JUMP &&
-                currentAnimation != ANIM_UP_JUMP &&
-                currentAnimation != ANIM_DOWN_JUMP)
+            if (currentAnimation != ANIM_JUMP)
             {
                 ChangeAnimation(ANIM_JUMP);
             }
@@ -278,41 +192,29 @@ public class PlayerController3D : MonoBehaviour
             Debug.LogError($"[PlayerController3D] Animator state '{newAnim}' not found in layer {layer}.");
         }
     }
+
     private IEnumerator PlayAttackThenDropWeapon()
     {
         GameObject weapon = inventorySystem.GetEquippedWeaponObject();
-
-        // No weapon? Cancel
         if (weapon == null) yield break;
 
-        // Lock controls
         jumpLocked = true;
-
-        // Play attack animation
         ChangeAnimation(ANIM_ATTACK);
 
-        // Wait until attack animation has started
         yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).IsName(ANIM_ATTACK));
-
-        // Wait for animation to fully finish
         yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);
 
-        // Drop and throw
-        inventorySystem.ClearEquippedSlot(); // clear UI slot
+        inventorySystem.ClearEquippedSlot();
         ThrowWeaponTowardTarget(weapon);
 
-        // Unlock controls
         jumpLocked = false;
         HandleAnimation();
     }
-
-
 
     private void ThrowWeaponTowardTarget(GameObject weapon)
     {
         weapon.transform.SetParent(null);
         weapon.transform.position = weaponSpawnPoint.position;
-
         weapon.SetActive(true);
 
         Rigidbody weaponRb = weapon.GetComponent<Rigidbody>();
@@ -321,15 +223,11 @@ public class PlayerController3D : MonoBehaviour
         if (weaponRb != null)
         {
             weaponRb.isKinematic = false;
-
-            // 🔍 Search for target in front of player
             Vector3 throwDirection = transform.forward;
-            float maxTargetDistance = 10f;
 
-            RaycastHit hit;
-            if (Physics.Raycast(transform.position + Vector3.up, transform.forward, out hit, maxTargetDistance))
+            if (Physics.Raycast(transform.position + Vector3.up, transform.forward, out RaycastHit hit, 10f))
             {
-                if (hit.collider.CompareTag("Enemy")) // ✅ Only aim if enemy is in front
+                if (hit.collider.CompareTag("Enemy"))
                 {
                     throwDirection = (hit.point - weaponSpawnPoint.position).normalized;
                 }
@@ -348,6 +246,7 @@ public class PlayerController3D : MonoBehaviour
             weapon.AddComponent<ThrownWeapon>();
         }
     }
+
     public void TriggerDeath()
     {
         if (isDead) return;
@@ -359,13 +258,11 @@ public class PlayerController3D : MonoBehaviour
         ChangeAnimation(ANIM_DEAD);
         StartCoroutine(WaitForDeathAnimation());
     }
+
     private IEnumerator WaitForDeathAnimation()
     {
         yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).IsName(ANIM_DEAD));
         yield return new WaitUntil(() => animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1f);
-
-        gameObject.SetActive(false); // fully disable player after death
+        gameObject.SetActive(false);
     }
-
-
 }
