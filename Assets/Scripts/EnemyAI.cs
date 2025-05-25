@@ -96,14 +96,11 @@ public class EnemyAI : MonoBehaviour
     {
         if (isDead) return;
 
-        // Instantly destroy on contact with weapon
         if (collision.collider.CompareTag("Weapon"))
         {
-            Destroy(gameObject);
+            Kill();
             return;
         }
-
-        // If hits non-player, non-ground object — change direction and back off slightly
         else if (!collision.collider.isTrigger && !collision.collider.CompareTag("Ground") && !collision.collider.CompareTag("Player"))
         {
             float randomAngle = Random.Range(120f, 240f);
@@ -125,5 +122,21 @@ public class EnemyAI : MonoBehaviour
         patrolSpeed = 0f;
         yield return new WaitForSeconds(duration);
         patrolSpeed = originalSpeed;
+    }
+
+    // Added Kill method that notifies WaveManager and destroys enemy
+    public void Kill()
+    {
+        if (isDead) return;
+
+        isDead = true;
+
+        if (WaveManager.Instance != null)
+        {
+            WaveManager.Instance.OnEnemyKilled();
+        }
+
+        // Optionally add death animation or bounce effect here before destroy
+        Destroy(gameObject, destroyDelay);
     }
 }
