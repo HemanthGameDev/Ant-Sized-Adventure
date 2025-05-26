@@ -379,7 +379,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 58ee4420662a0f14ba4a88c5d59ee659, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  patrolSpeed: 1.5
+  patrolSpeed: 1
   chargeSpeed: 4
   rotationSpeed: 5
   aggroRadius: {fileID: 5686520156921861735}

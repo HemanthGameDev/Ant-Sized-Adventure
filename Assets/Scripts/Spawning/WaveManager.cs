@@ -18,7 +18,7 @@ public class WaveManager : MonoBehaviour
     private int enemiesAlive = 0;
     private int totalEnemiesThisWave = 0;
 
-    void Awake()
+    private void Awake()
     {
         if (Instance == null)
             Instance = this;
@@ -26,12 +26,12 @@ public class WaveManager : MonoBehaviour
             Destroy(gameObject);
     }
 
-    void Start()
+    private void Start()
     {
         StartWave();
     }
 
-    void StartWave()
+    private void StartWave()
     {
         if (currentWave >= enemiesPerWave.Length)
         {
@@ -54,7 +54,7 @@ public class WaveManager : MonoBehaviour
         }
     }
 
-    void SpawnEnemyAt(Transform spawnPoint)
+    private void SpawnEnemyAt(Transform spawnPoint)
     {
         GameObject enemy = Instantiate(enemyPrefab, spawnPoint.position, Quaternion.identity);
 
@@ -74,6 +74,12 @@ public class WaveManager : MonoBehaviour
         enemiesAlive--;
         uiManager.UpdateEnemies(enemiesAlive, totalEnemiesThisWave);
 
+        // ✅ Add score per kill
+        if (ScoreManager.Instance != null)
+        {
+            ScoreManager.Instance.AddScore(10); // Award 10 points per enemy
+        }
+
         if (enemiesRemainingToSpawn > 0)
         {
             Transform spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
@@ -81,7 +87,6 @@ public class WaveManager : MonoBehaviour
         }
         else if (enemiesAlive <= 0)
         {
-            // ✅ Check if this was the last wave
             if (currentWave >= enemiesPerWave.Length - 1)
             {
                 Debug.Log("Victory! All waves defeated.");
@@ -101,7 +106,7 @@ public class WaveManager : MonoBehaviour
         StartWave();
     }
 
-    IEnumerator StartNextWaveDelayed()
+    private IEnumerator StartNextWaveDelayed()
     {
         yield return new WaitForSeconds(2f);
         StartWave();

@@ -147,4 +147,11 @@ public class EnemyAI : MonoBehaviour
         // Optionally add death animation or bounce effect here before destroy
         Destroy(gameObject, destroyDelay);
     }
+    public void Die()
+    {
+        WaveManager.Instance.OnEnemyKilled();
+        ScoreManager.Instance.AddScore(1); // Add 10 points per enemy
+        Destroy(gameObject);
+    }
+
 }
