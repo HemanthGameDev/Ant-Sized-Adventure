@@ -1,93 +1,74 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.AI;
 
 public class EnemySpawner : MonoBehaviour
 {
-    [Header("Enemy Settings")]
     public GameObject enemyPrefab;
-    public int maxSpawnAttempts = 100;
+    public Transform[] spawnPoints;
 
-    [Header("Spawn Area Settings")]
-    public float spawnRadius = 30f; // adjustable in Inspector
-    public float groundCheckHeight = 100f;
-    public float groundRayLength = 200f;
-    public float navMeshSampleRadius = 3f;
-    public LayerMask groundMask;
-    public LayerMask obstacleMask;
+    private bool[] isOccupied;
+    private Queue<int> spawnQueue = new Queue<int>();
+    private int totalEnemiesToSpawn;
+    private int spawnedEnemies;
 
-    [Header("Debug")]
-    public bool showSpawnGizmos = true;
-
-    public void SpawnEnemies(int count)
+    private void Awake()
     {
-        int spawned = 0;
-        int attempts = 0;
+        isOccupied = new bool[spawnPoints.Length];
+    }
 
-        while (spawned < count && attempts < maxSpawnAttempts)
+    public void BeginSpawningWave(int count)
+    {
+        totalEnemiesToSpawn = count;
+        spawnedEnemies = 0;
+        spawnQueue.Clear();
+
+        for (int i = 0; i < count; i++)
         {
-            Vector3 candidate = GetRandomSpawnPosition();
-
-            if (IsValidSpawnPoint(candidate))
-            {
-                Instantiate(enemyPrefab, candidate, Quaternion.identity);
-                spawned++;
-            }
-
-            attempts++;
+            spawnQueue.Enqueue(i);
         }
 
-        if (spawned < count)
+        StartCoroutine(SpawnLoop());
+    }
+
+    private IEnumerator SpawnLoop()
+    {
+        while (spawnedEnemies < totalEnemiesToSpawn)
         {
-            Debug.LogWarning($"Only spawned {spawned}/{count} enemies after {attempts} attempts.");
+            for (int i = 0; i < spawnPoints.Length; i++)
+            {
+                if (!isOccupied[i] && spawnQueue.Count > 0)
+                {
+                    SpawnAt(i);
+                    yield return new WaitForSeconds(0.2f);
+                }
+            }
+            yield return null;
         }
     }
 
-    private Vector3 GetRandomSpawnPosition()
+    private void SpawnAt(int index)
     {
-        Vector2 randomCircle = Random.insideUnitCircle * spawnRadius;
-        Vector3 topRayPos = new Vector3(transform.position.x + randomCircle.x, groundCheckHeight, transform.position.z + randomCircle.y);
-        return topRayPos;
-    }
+        GameObject enemy = Instantiate(enemyPrefab, spawnPoints[index].position, Quaternion.identity);
+        isOccupied[index] = true;
+        spawnedEnemies++;
+        spawnQueue.Dequeue();
 
-    private bool IsValidSpawnPoint(Vector3 fromAbove)
-    {
-        // Raycast down to hit ground
-        if (Physics.Raycast(fromAbove, Vector3.down, out RaycastHit hit, groundRayLength, groundMask))
+        EnemyTracker tracker = enemy.GetComponent<EnemyTracker>();
+        if (tracker != null)
         {
-            Vector3 point = hit.point;
-
-            // Avoid obstacles
-            Collider[] nearbyObstacles = Physics.OverlapSphere(point, 1.5f, obstacleMask);
-            if (nearbyObstacles.Length > 0)
-            {
-                Debug.Log("Spawn blocked by obstacle.");
-                return false;
-            }
-
-            // Check NavMesh
-            if (NavMesh.SamplePosition(point, out NavMeshHit navHit, navMeshSampleRadius, NavMesh.AllAreas))
-            {
-                return true;
-            }
-            else
-            {
-                Debug.Log("Spawn point not on NavMesh.");
-            }
-        }
-        else
-        {
-            Debug.Log("No ground detected below spawn point.");
+            tracker.Init(this, index);
         }
 
-        return false;
+        Debug.Log($"Spawned enemy at spawn point {index}");
     }
 
-
-    private void OnDrawGizmosSelected()
+    public void NotifyEnemyDied(int spawnIndex)
     {
-        if (!showSpawnGizmos) return;
-
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, spawnRadius);
+        if (spawnIndex >= 0 && spawnIndex < isOccupied.Length)
+        {
+            isOccupied[spawnIndex] = false;
+            Debug.Log($"Spawn point {spawnIndex} is now free");
+        }
     }
 }

@@ -3,76 +3,91 @@ using UnityEngine;
 
 public class WaveManager : MonoBehaviour
 {
-    public static WaveManager Instance;
+    public static WaveManager Instance { get; private set; }
 
-    public EnemySpawner spawner;
+    [Header("Wave Settings")]
+    public int[] enemiesPerWave; // How many enemies to spawn per wave
+    public GameObject enemyPrefab;
+    public Transform[] spawnPoints;
+
+    [Header("UI")]
     public UIManager uiManager;
 
-    public float[] waveDurations = { 30f, 60f, 90f }; // Example times
-    public int[] enemiesPerWave = { 1, 3, 5 }; // Number of enemies per wave
-
     private int currentWave = 0;
-    private int enemiesRemaining = 0;
-    private float waveTimer = 0f;
-    private bool waveInProgress = false;
+    private int enemiesRemainingToSpawn = 0;
+    private int enemiesAlive = 0;
 
-    private void Awake()
+    void Awake()
     {
-        if (Instance == null) Instance = this;
+        if (Instance == null)
+            Instance = this;
+        else
+            Destroy(gameObject);
     }
 
-    private void Start()
+    void Start()
     {
-        StartCoroutine(StartNextWave());
+        StartWave();
     }
 
-    private void Update()
+    void StartWave()
     {
-        if (!waveInProgress) return;
-
-        waveTimer -= Time.deltaTime;
-        uiManager.UpdateTimer(waveTimer);
-
-        if (waveTimer <= 0 && enemiesRemaining > 0)
-        {
-            Debug.Log("Time's up! Wave failed.");
-            waveInProgress = false;
-            // Handle wave failure logic here
-        }
-    }
-
-    private IEnumerator StartNextWave()
-    {
-        yield return new WaitForSeconds(2f); // Small delay before next wave
-
         if (currentWave >= enemiesPerWave.Length)
         {
-            Debug.Log("All waves completed!");
-            yield break;
+            Debug.Log("All waves complete!");
+            return;
         }
 
-        waveInProgress = true;
-        waveTimer = waveDurations[Mathf.Min(currentWave, waveDurations.Length - 1)];
-        enemiesRemaining = enemiesPerWave[currentWave];
+        enemiesRemainingToSpawn = enemiesPerWave[currentWave];
+        enemiesAlive = 0;
 
         uiManager.UpdateWave(currentWave + 1);
-        uiManager.UpdateEnemies(enemiesRemaining);
-        uiManager.UpdateTimer(waveTimer);
 
-        spawner.SpawnEnemies(enemiesRemaining);
+        // Spawn as many as possible initially (limited by spawn points)
+        int initialSpawnCount = Mathf.Min(enemiesRemainingToSpawn, spawnPoints.Length);
+        for (int i = 0; i < initialSpawnCount; i++)
+        {
+            SpawnEnemyAt(spawnPoints[i]);
+        }
+    }
 
-        currentWave++;
+    void SpawnEnemyAt(Transform spawnPoint)
+    {
+        GameObject enemy = Instantiate(enemyPrefab, spawnPoint.position, Quaternion.identity);
+
+        // Set waveManager reference if EnemyAI is used
+        EnemyAI enemyAI = enemy.GetComponent<EnemyAI>();
+        if (enemyAI != null)
+        {
+            enemyAI.waveManager = this;
+        }
+
+        enemiesRemainingToSpawn--;
+        enemiesAlive++;
+        uiManager.UpdateEnemies(enemiesAlive);
     }
 
     public void OnEnemyKilled()
     {
-        enemiesRemaining--;
-        uiManager.UpdateEnemies(enemiesRemaining);
+        enemiesAlive--;
+        uiManager.UpdateEnemies(enemiesAlive);
 
-        if (enemiesRemaining <= 0 && waveInProgress)
+        if (enemiesRemainingToSpawn > 0)
         {
-            waveInProgress = false;
-            StartCoroutine(StartNextWave());
+            // Spawn from any random spawn point
+            Transform spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
+            SpawnEnemyAt(spawnPoint);
         }
+        else if (enemiesAlive <= 0)
+        {
+            currentWave++;
+            StartCoroutine(StartNextWaveDelayed());
+        }
+    }
+
+    IEnumerator StartNextWaveDelayed()
+    {
+        yield return new WaitForSeconds(2f); // small delay before next wave
+        StartWave();
     }
 }

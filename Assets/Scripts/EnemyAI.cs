@@ -16,6 +16,9 @@ public class EnemyAI : MonoBehaviour
     public float bounceForce = 5f;
     public float destroyDelay = 0.5f;
 
+    [Header("Wave System")]
+    public WaveManager waveManager;
+
     private Transform player;
     private bool isChasing = false;
     private Vector3 patrolDirection;
@@ -29,6 +32,12 @@ public class EnemyAI : MonoBehaviour
     {
         patrolDirection = transform.forward;
         rb = GetComponent<Rigidbody>();
+
+        // Assign WaveManager automatically if not set in prefab
+        if (waveManager == null && WaveManager.Instance != null)
+        {
+            waveManager = WaveManager.Instance;
+        }
     }
 
     void Update()
@@ -124,16 +133,15 @@ public class EnemyAI : MonoBehaviour
         patrolSpeed = originalSpeed;
     }
 
-    // Added Kill method that notifies WaveManager and destroys enemy
     public void Kill()
     {
         if (isDead) return;
 
         isDead = true;
 
-        if (WaveManager.Instance != null)
+        if (waveManager != null)
         {
-            WaveManager.Instance.OnEnemyKilled();
+            waveManager.OnEnemyKilled();
         }
 
         // Optionally add death animation or bounce effect here before destroy
