@@ -16,10 +16,15 @@ public class UIManager : MonoBehaviour
     public Button continueButton;
     public Button restartButton;
 
+    [Header("Victory Panel")]
+    public GameObject victoryPanel;
+    public Button quitButton;
+
     private void Start()
     {
         waveClearedPanel.SetActive(false);
         gameOverPanel.SetActive(false);
+        victoryPanel.SetActive(false);
     }
 
     public void UpdateWave(int waveNumber)
@@ -46,4 +51,9 @@ public class UIManager : MonoBehaviour
     {
         gameOverPanel.SetActive(true);
     }
+    public void ShowVictory()
+    {
+        victoryPanel.SetActive(true);
+    }
+
 }

@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public class WaveManager : MonoBehaviour
@@ -36,6 +36,7 @@ public class WaveManager : MonoBehaviour
         if (currentWave >= enemiesPerWave.Length)
         {
             Debug.Log("All waves complete!");
+            uiManager.ShowVictory(); // ✅ Show Victory if no more waves
             return;
         }
 
@@ -80,17 +81,25 @@ public class WaveManager : MonoBehaviour
         }
         else if (enemiesAlive <= 0)
         {
-            uiManager.ShowWaveCleared();
+            // ✅ Check if this was the last wave
+            if (currentWave >= enemiesPerWave.Length - 1)
+            {
+                Debug.Log("Victory! All waves defeated.");
+                uiManager.ShowVictory(); // ✅ Show victory UI
+            }
+            else
+            {
+                uiManager.ShowWaveCleared(); // ✅ Continue button for next wave
+            }
         }
-
     }
+
     public void ContinueToNextWave()
     {
         uiManager.HideWaveCleared();
         currentWave++;
         StartWave();
     }
-
 
     IEnumerator StartNextWaveDelayed()
     {
