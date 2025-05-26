@@ -80,10 +80,17 @@ public class WaveManager : MonoBehaviour
         }
         else if (enemiesAlive <= 0)
         {
-            currentWave++;
-            StartCoroutine(StartNextWaveDelayed());
+            uiManager.ShowWaveCleared();
         }
+
     }
+    public void ContinueToNextWave()
+    {
+        uiManager.HideWaveCleared();
+        currentWave++;
+        StartWave();
+    }
+
 
     IEnumerator StartNextWaveDelayed()
     {
