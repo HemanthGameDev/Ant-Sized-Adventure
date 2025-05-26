@@ -2508,6 +2508,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0ff24f7ce30451419046f329b21907a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  aimSmoothSpeed: 5
+  minTargetDistance: 2
   aimRange: 20
   enemyLayer:
     serializedVersion: 2
@@ -2548,7 +2550,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 741, y: 396}
+  m_AnchoredPosition: {x: -22, y: 396}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &916315589
@@ -2893,7 +2895,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 777, y: 245}
+  m_AnchoredPosition: {x: 729, y: 397}
   m_SizeDelta: {x: 89.3641, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1436715367
@@ -2969,9 +2971,10 @@ MonoBehaviour:
   stickSlot: {fileID: 550072051}
   rockSlot: {fileID: 691867127}
   throwForce: 20
-  throwUpwardForce: 5
+  upwardForce: 2
   weaponDespawnTime: 5
   throwAnimationDuration: 2.75
+  throwRangeMultiplier: 1
   playerAnimator: {fileID: 901583865}
 --- !u!4 &1485005735
 Transform:

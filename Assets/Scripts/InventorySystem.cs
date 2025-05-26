@@ -15,11 +15,11 @@ public class InventorySystem : MonoBehaviour
     public InventorySlot rockSlot;
 
     [Header("Throw Settings")]
-    public float throwForce = 5f;
-    public float throwUpwardForce = 2f;
+    public float throwForce = 10f;
+    public float upwardForce = 2f;
     public float weaponDespawnTime = 10f;
     public float throwAnimationDuration = 0.35f; // should match actual animation
-
+    public float throwRangeMultiplier = 1.0f;
     [Header("Animation")]
     public Animator playerAnimator; // assign Player Animator in Inspector
 
@@ -123,7 +123,9 @@ public class InventorySystem : MonoBehaviour
         if (rb != null)
         {
             rb.isKinematic = false;
-            rb.AddForce(weaponAttachPoint.forward * throwForce + Vector3.up * throwUpwardForce, ForceMode.Impulse);
+            Vector3 throwDir = weaponAttachPoint.forward * throwForce * throwRangeMultiplier + Vector3.up * upwardForce;
+            rb.AddForce(throwDir, ForceMode.Impulse);
+
         }
 
         foreach (Collider col in equippedWeapon.GetComponentsInChildren<Collider>())
@@ -165,7 +167,9 @@ public class InventorySystem : MonoBehaviour
         if (rb != null)
         {
             rb.isKinematic = false;
-            rb.AddForce(weaponAttachPoint.forward * throwForce + Vector3.up * throwUpwardForce, ForceMode.Impulse);
+            Vector3 throwDir = weaponAttachPoint.forward * throwForce * throwRangeMultiplier + Vector3.up * upwardForce;
+            rb.AddForce(throwDir, ForceMode.Impulse);
+
         }
 
         foreach (Collider col in equippedWeapon.GetComponentsInChildren<Collider>())

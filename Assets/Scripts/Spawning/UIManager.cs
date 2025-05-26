@@ -11,8 +11,9 @@ public class UIManager : MonoBehaviour
         waveText.text = "Wave: " + waveNumber;
     }
 
-    public void UpdateEnemies(int count)
+    public void UpdateEnemies(int alive, int total)
     {
-        enemiesText.text = "Enemies Left: " + count;
+        enemiesText.text = $"Enemies Left: {alive} / {total}";
     }
+
 }

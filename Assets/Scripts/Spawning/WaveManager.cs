@@ -49,6 +49,8 @@ public class WaveManager : MonoBehaviour
         {
             SpawnEnemyAt(spawnPoints[i]);
         }
+        
+
     }
 
     void SpawnEnemyAt(Transform spawnPoint)
@@ -64,13 +66,15 @@ public class WaveManager : MonoBehaviour
 
         enemiesRemainingToSpawn--;
         enemiesAlive++;
-        uiManager.UpdateEnemies(enemiesAlive);
+        uiManager.UpdateEnemies(enemiesAlive, enemiesRemainingToSpawn + enemiesAlive);
+
     }
 
     public void OnEnemyKilled()
     {
         enemiesAlive--;
-        uiManager.UpdateEnemies(enemiesAlive);
+        uiManager.UpdateEnemies(enemiesAlive, enemiesRemainingToSpawn + enemiesAlive);
+
 
         if (enemiesRemainingToSpawn > 0)
         {
