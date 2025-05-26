@@ -16,6 +16,7 @@ public class WaveManager : MonoBehaviour
     private int currentWave = 0;
     private int enemiesRemainingToSpawn = 0;
     private int enemiesAlive = 0;
+    private int totalEnemiesThisWave = 0;
 
     void Awake()
     {
@@ -39,25 +40,23 @@ public class WaveManager : MonoBehaviour
         }
 
         enemiesRemainingToSpawn = enemiesPerWave[currentWave];
+        totalEnemiesThisWave = enemiesRemainingToSpawn;
         enemiesAlive = 0;
 
         uiManager.UpdateWave(currentWave + 1);
+        uiManager.UpdateEnemies(enemiesAlive, totalEnemiesThisWave);
 
-        // Spawn as many as possible initially (limited by spawn points)
         int initialSpawnCount = Mathf.Min(enemiesRemainingToSpawn, spawnPoints.Length);
         for (int i = 0; i < initialSpawnCount; i++)
         {
             SpawnEnemyAt(spawnPoints[i]);
         }
-        
-
     }
 
     void SpawnEnemyAt(Transform spawnPoint)
     {
         GameObject enemy = Instantiate(enemyPrefab, spawnPoint.position, Quaternion.identity);
 
-        // Set waveManager reference if EnemyAI is used
         EnemyAI enemyAI = enemy.GetComponent<EnemyAI>();
         if (enemyAI != null)
         {
@@ -66,19 +65,16 @@ public class WaveManager : MonoBehaviour
 
         enemiesRemainingToSpawn--;
         enemiesAlive++;
-        uiManager.UpdateEnemies(enemiesAlive, enemiesRemainingToSpawn + enemiesAlive);
-
+        uiManager.UpdateEnemies(enemiesAlive, totalEnemiesThisWave);
     }
 
     public void OnEnemyKilled()
     {
         enemiesAlive--;
-        uiManager.UpdateEnemies(enemiesAlive, enemiesRemainingToSpawn + enemiesAlive);
-
+        uiManager.UpdateEnemies(enemiesAlive, totalEnemiesThisWave);
 
         if (enemiesRemainingToSpawn > 0)
         {
-            // Spawn from any random spawn point
             Transform spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
             SpawnEnemyAt(spawnPoint);
         }
@@ -91,7 +87,7 @@ public class WaveManager : MonoBehaviour
 
     IEnumerator StartNextWaveDelayed()
     {
-        yield return new WaitForSeconds(2f); // small delay before next wave
+        yield return new WaitForSeconds(2f);
         StartWave();
     }
 }

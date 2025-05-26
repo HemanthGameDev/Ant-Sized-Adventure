@@ -15,5 +15,4 @@ public class UIManager : MonoBehaviour
     {
         enemiesText.text = $"Enemies Left: {alive} / {total}";
     }
-
 }
