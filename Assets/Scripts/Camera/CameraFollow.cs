@@ -1,86 +1,90 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-[RequireComponent(typeof(Camera))]
-public class CameraCollisionFollow : MonoBehaviour
+public class CameraFollowCollision : MonoBehaviour
 {
-    [Header("Target Settings")]
     public Transform player;
-    public Vector3 offset = new Vector3(0, 2.0f, -5.0f);
-
-    [Header("Collision Settings")]
-    public LayerMask collisionLayers;
-    public float sphereCastRadius = 0.3f;
-    public float minDistance = 1.0f;
-    public float maxDistance = 10.0f;
-    public float smoothing = 10f;
-
-    [Header("Rotation Settings")]
-    public float rotationSpeed = 100f;
+    public float distance = 5.0f;
+    public float height = 2.0f;
     public float mouseSensitivity = 2.0f;
-    public float minVerticalAngle = -40f;
-    public float maxVerticalAngle = 80f;
+    public float zoomSpeed = 2.0f;
+    public float minDistance = 2.0f;
+    public float maxDistance = 10.0f;
+    public float minPitch = -40f;
+    public float maxPitch = 80f;
 
-    private float currentYaw = 0f;
-    private float currentPitch = 20f;
-    private Vector3 currentVelocity;
+    public LayerMask collisionLayers;
+    public float collisionBuffer = 0.3f;
 
-    private void Start()
+    private float yaw = 0f;
+    private float pitch = 20f;
+    private Vector3 lastMousePos;
+
+    void Start()
     {
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        if (player != null)
+        {
+            Vector3 offset = transform.position - player.position;
+            yaw = Mathf.Atan2(offset.x, offset.z) * Mathf.Rad2Deg;
+            pitch = Mathf.Asin(offset.y / offset.magnitude) * Mathf.Rad2Deg;
+        }
     }
 
-    private void LateUpdate()
+    void LateUpdate()
     {
         if (player == null) return;
 
         HandleRotationInput();
-        Vector3 desiredCameraPosition = CalculateDesiredPosition();
-        Vector3 correctedPosition = CollisionCorrectedPosition(desiredCameraPosition);
-
-        transform.position = Vector3.SmoothDamp(transform.position, correctedPosition, ref currentVelocity, 1f / smoothing);
-        transform.LookAt(player.position + Vector3.up * offset.y);
+        HandleZoomInput();
+        UpdateCameraPosition();
     }
 
     private void HandleRotationInput()
     {
-        if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A))
-            currentYaw -= rotationSpeed * Time.deltaTime;
-        if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D))
-            currentYaw += rotationSpeed * Time.deltaTime;
-
-        if (!IsPointerOverUI())
+        if (!IsPointerOverUI() && Input.GetMouseButton(0))
         {
-            if (Input.GetMouseButton(0))
-            {
-                currentYaw += Input.GetAxis("Mouse X") * mouseSensitivity;
-                currentPitch -= Input.GetAxis("Mouse Y") * mouseSensitivity;
-                currentPitch = Mathf.Clamp(currentPitch, minVerticalAngle, maxVerticalAngle);
-            }
+            Vector3 delta = Input.mousePosition - lastMousePos;
+            yaw += delta.x * mouseSensitivity * 0.1f;
+            pitch -= delta.y * mouseSensitivity * 0.1f;
+            pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+        }
+
+        lastMousePos = Input.mousePosition;
+    }
+
+    private void HandleZoomInput()
+    {
+        if (Input.GetAxis("Mouse ScrollWheel") != 0f)
+        {
+            distance -= Input.GetAxis("Mouse ScrollWheel") * zoomSpeed;
+            distance = Mathf.Clamp(distance, minDistance, maxDistance);
         }
     }
 
-    private Vector3 CalculateDesiredPosition()
+    private void UpdateCameraPosition()
     {
-        Quaternion rotation = Quaternion.Euler(currentPitch, currentYaw, 0);
-        Vector3 direction = rotation * Vector3.back;
-        return player.position + Vector3.up * offset.y + direction * offset.magnitude;
+        Quaternion rotation = Quaternion.Euler(pitch, yaw, 0);
+        Vector3 desiredPos = player.position - rotation * Vector3.forward * distance + Vector3.up * height;
+        Vector3 correctedPos = CollisionCorrectedPosition(desiredPos);
+
+        transform.position = correctedPos;
+        transform.LookAt(player.position + Vector3.up * height * 0.5f);
     }
 
     private Vector3 CollisionCorrectedPosition(Vector3 desiredPos)
     {
-        Vector3 origin = player.position + Vector3.up * offset.y;
+        Vector3 origin = player.position + Vector3.up * height;
 
         if (Physics.Linecast(origin, desiredPos, out RaycastHit hit, collisionLayers))
         {
-            Debug.Log("Blocked by: " + hit.collider.name);
-            return hit.point + hit.normal * 0.3f;
+            return hit.point + hit.normal * collisionBuffer;
         }
 
         return desiredPos;
     }
-
 
     private bool IsPointerOverUI()
     {
