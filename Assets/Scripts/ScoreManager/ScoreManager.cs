@@ -28,7 +28,7 @@ public class ScoreManager : MonoBehaviour
 
     private void Start()
     {
-        uiManager = FindObjectOfType<UIManager>();
+        uiManager = FindFirstObjectByType<UIManager>();
         UpdateUI();
     }
 

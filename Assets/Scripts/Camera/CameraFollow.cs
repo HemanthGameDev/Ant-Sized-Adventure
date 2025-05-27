@@ -75,15 +75,35 @@ public class CameraFollowKeyboard : MonoBehaviour
         distance = Mathf.Clamp(distance, minDistance, maxDistance);
     }
 
+    public LayerMask collisionLayers; // Exposed in Inspector
+
     private void UpdateCameraPosition()
     {
         Quaternion rotation = Quaternion.Euler(0, currentAngle, 0);
-        Vector3 offset = rotation * new Vector3(0, height, -distance);
-        Vector3 targetPosition = player.position + offset;
+        Vector3 desiredOffset = rotation * new Vector3(0, height, -distance);
+        Vector3 desiredPosition = player.position + desiredOffset;
 
-        transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * 10f);
+        Vector3 origin = player.position + Vector3.up * height * 0.5f;
+        Vector3 direction = (desiredPosition - origin).normalized;
+
+        float targetDistance = distance;
+        float sphereRadius = 0.3f;
+
+        RaycastHit hit;
+        if (Physics.SphereCast(origin, sphereRadius, direction, out hit, distance, collisionLayers))
+        {
+            targetDistance = Mathf.Clamp(hit.distance - 0.1f, minDistance, distance);
+        }
+
+        Vector3 finalOffset = rotation * new Vector3(0, height, -targetDistance);
+        Vector3 finalPosition = player.position + finalOffset;
+
+        transform.position = Vector3.Lerp(transform.position, finalPosition, Time.deltaTime * 10f);
         transform.LookAt(player.position + Vector3.up * height * 0.5f);
     }
+
+
+
 
     // Prevent camera control when touching UI (like weapon icons)
     private bool IsPointerOverUI()
