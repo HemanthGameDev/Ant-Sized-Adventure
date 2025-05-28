@@ -52,7 +52,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.5
+  m_Radius: 0.35
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &842126821917075767
 MonoBehaviour:
@@ -66,7 +66,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 273370be69856a94fb555284c6244540, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  damage: 2
+  damage: 5
   attackCooldown: 1
 --- !u!1 &1558875291845038470
 GameObject:
@@ -95,7 +95,7 @@ Transform:
   m_GameObject: {fileID: 1558875291845038470}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0, y: 0.0033, z: 0.0336}
+  m_LocalPosition: {x: 0, y: -0.002, z: 0.0327}
   m_LocalScale: {x: 0.008992442, y: 0, z: 0.006723684}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -132,7 +132,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 3.89, y: 0, z: 14.29}
+  m_Size: {x: 3.89, y: 1.67, z: 14.34}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1622026074969941366
 GameObject:
@@ -192,7 +192,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 2.83, y: 0.88, z: 1.88}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalScale: {x: 3, y: 3, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3757154929947347043}
@@ -339,7 +339,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22b245550a725ff47b93cb6ff22c77ce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  damageAmount: 2
+  damageAmount: 5
 --- !u!54 &579778959128706740
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -379,9 +379,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 58ee4420662a0f14ba4a88c5d59ee659, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  patrolSpeed: 1
-  chargeSpeed: 4
-  rotationSpeed: 5
+  patrolSpeed: 2
+  chargeSpeed: 5
+  rotationSpeed: 6
   aggroRadius: {fileID: 5686520156921861735}
   attackTrigger: {fileID: 5483414036044527412}
   directionPointer: {fileID: 8823952078857706562}

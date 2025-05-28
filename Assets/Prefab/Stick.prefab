@@ -10,15 +10,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 94bd8dd92e5db904da83fbb0f500b81d, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0
+      value: -0.92
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 94bd8dd92e5db904da83fbb0f500b81d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.22
+      value: 4.61
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 94bd8dd92e5db904da83fbb0f500b81d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -3.56
+      value: 15.22
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 94bd8dd92e5db904da83fbb0f500b81d, type: 3}
       propertyPath: m_LocalRotation.w
@@ -139,6 +139,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c0d2b3836515414bb51f6cc1aa164ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  weaponData: {fileID: 11400000, guid: 9f37a542c20eabd45ab1d1540cad7341, type: 2}
-  pickupRange: 2
-  pickupKey: 101
+  weaponName: Stick
+  weaponIcon: {fileID: 21300000, guid: 31408586085d51b49ac3a6f291b4b095, type: 3}
+  weaponPrefab: {fileID: 5584348786993599270}
