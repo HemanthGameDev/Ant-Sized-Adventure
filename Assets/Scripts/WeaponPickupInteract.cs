@@ -48,3 +48,8 @@ public class WeaponPickupInteract : MonoBehaviour
         }
     }
 }
+
+
+
+
+
