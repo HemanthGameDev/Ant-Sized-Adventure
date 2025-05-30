@@ -1,13 +1,16 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody))]
 public class EnemyAI : MonoBehaviour
 {
-    [Header("Movement")]
+    [Header("Movement Settings")]
     public float patrolSpeed = 1.5f;
     public float chargeSpeed = 4f;
     public float rotationSpeed = 5f;
+    public float directionChangeInterval = 3f;
+    public float obstacleDetectDistance = 1.5f;
 
-    [Header("References")]
+    [Header("Detection & Direction")]
     public Transform aggroRadius;
     public Transform attackTrigger;
     public Transform directionPointer;
@@ -16,28 +19,24 @@ public class EnemyAI : MonoBehaviour
     public float bounceForce = 5f;
     public float destroyDelay = 0.5f;
 
-    [Header("Wave System")]
+    [Header("Managers")]
     public WaveManager waveManager;
 
     private Transform player;
-    private bool isChasing = false;
     private Vector3 patrolDirection;
     private float directionChangeTimer;
-    private float directionChangeInterval = 3f;
+    private bool isChasing = false;
     private bool isDead = false;
 
     private Rigidbody rb;
 
     void Start()
     {
-        patrolDirection = transform.forward;
         rb = GetComponent<Rigidbody>();
+        patrolDirection = transform.forward;
 
-        // Assign WaveManager automatically if not set in prefab
         if (waveManager == null && WaveManager.Instance != null)
-        {
             waveManager = WaveManager.Instance;
-        }
     }
 
     void Update()
@@ -62,35 +61,47 @@ public class EnemyAI : MonoBehaviour
     void Patrol()
     {
         directionChangeTimer += Time.deltaTime;
-        if (directionChangeTimer >= directionChangeInterval)
+
+        // Change direction after interval or if obstacle is detected
+        if (directionChangeTimer >= directionChangeInterval || DetectObstacleAhead())
         {
             directionChangeTimer = 0f;
-            float angle = Random.Range(0f, 360f);
-            patrolDirection = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+            float angle = Random.Range(90f, 270f); // wider angle to ensure decent direction changes
+            patrolDirection = Quaternion.Euler(0f, angle, 0f) * transform.forward;
         }
 
-        MoveInDirection(patrolDirection.normalized, patrolSpeed);
+        MoveInDirection(patrolDirection, patrolSpeed);
+    }
+
+    bool DetectObstacleAhead()
+    {
+        Ray ray = new Ray(transform.position + Vector3.up * 0.1f, transform.forward);
+        return Physics.Raycast(ray, obstacleDetectDistance, LayerMask.GetMask("Default"), QueryTriggerInteraction.Ignore);
     }
 
     void ChargeTowardsPlayer()
     {
-        Vector3 dir = (player.position - transform.position).normalized;
-        dir.y = 0;
-        MoveInDirection(dir, chargeSpeed);
+        if (player == null) return;
+
+        Vector3 direction = (player.position - transform.position).normalized;
+        direction.y = 0;
+        MoveInDirection(direction, chargeSpeed);
     }
 
-    void MoveInDirection(Vector3 dir, float speed)
+    void MoveInDirection(Vector3 direction, float speed)
     {
-        if (dir == Vector3.zero) return;
+        if (direction == Vector3.zero) return;
 
-        Quaternion targetRotation = Quaternion.LookRotation(dir);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
+        Quaternion targetRotation = Quaternion.LookRotation(direction);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
 
-        transform.position += transform.forward * speed * Time.deltaTime;
+        Vector3 movement = transform.forward * speed * Time.deltaTime;
+        rb.MovePosition(rb.position + movement);
     }
 
     public void SetChasePlayer(Transform target)
     {
+        if (target == null) return;
         isChasing = true;
         player = target;
     }
@@ -108,17 +119,18 @@ public class EnemyAI : MonoBehaviour
         if (collision.collider.CompareTag("Weapon"))
         {
             Kill();
-            return;
         }
-        else if (!collision.collider.isTrigger && !collision.collider.CompareTag("Ground") && !collision.collider.CompareTag("Player"))
+        else if (!collision.collider.isTrigger &&
+                 !collision.collider.CompareTag("Ground") &&
+                 !collision.collider.CompareTag("Player"))
         {
-            float randomAngle = Random.Range(120f, 240f);
-            patrolDirection = Quaternion.Euler(0, randomAngle, 0) * transform.forward;
+            float angle = Random.Range(120f, 240f);
+            patrolDirection = Quaternion.Euler(0f, angle, 0f) * transform.forward;
 
             if (rb != null)
             {
-                Vector3 bounceBack = -collision.GetContact(0).normal * 0.5f;
-                rb.AddForce(bounceBack, ForceMode.Impulse);
+                Vector3 bounce = -collision.GetContact(0).normal * bounceForce;
+                rb.AddForce(bounce, ForceMode.Impulse);
             }
 
             StartCoroutine(PauseMovement(0.2f));
@@ -138,20 +150,14 @@ public class EnemyAI : MonoBehaviour
         if (isDead) return;
 
         isDead = true;
+        waveManager?.OnEnemyKilled();
+        ScoreManager.Instance?.AddScore(1);
 
-        if (waveManager != null)
-        {
-            waveManager.OnEnemyKilled();
-        }
-
-        // Optionally add death animation or bounce effect here before destroy
         Destroy(gameObject, destroyDelay);
     }
+
     public void Die()
     {
-        WaveManager.Instance.OnEnemyKilled();
-        ScoreManager.Instance.AddScore(1); // Add 10 points per enemy
-        Destroy(gameObject);
+        Kill();
     }
-
 }
